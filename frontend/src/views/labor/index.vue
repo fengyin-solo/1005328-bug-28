@@ -79,13 +79,14 @@ import {
   moduleMeta,
   runAction as applyAction,
 } from '@/api/local-service'
+import { listRows } from '@/data/local-store'
+import { countByStatus, monthSettledWorkdays } from '@/data/labor'
 import type { EntryRow } from '@/data/types'
 
 const meta = moduleMeta('labor')
-const columns = ["派工编号", "作业区域", "用工类别", "出工人数", "带队人", "出工日期", "结算工日", "派工状态"]
+const columns = ["派工编号", "作业区域", "用工类别", "出工人数", "带队人", "出工日期", "派工工价", "结算工日", "结算工价", "结算金额", "结算日期", "派工状态"]
 const actions = ["提交派工", "确认完工", "取消派工"]
 const statuses = ["待派工", "已派工", "已完工", "已取消"]
-const stats = [{"label": "待派工记录", "value": 0}, {"label": "已派工记录", "value": 0}, {"label": "本月结算工日", "value": 0}]
 
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
@@ -98,6 +99,18 @@ const statusSummary = computed(() =>
     count: rows.value.filter((row) => String(row.status) === status).length,
   })),
 )
+// 概览卡取全模块口径（与运营概览页一致），不受上方检索条件影响：
+// 列表筛不筛、怎么筛，本月结算工日都和概览对得上。
+// rows.value 仅作为刷新触发：每次动作后 reload 会重取数据，统计随之重算。
+const stats = computed(() => {
+  void rows.value
+  const all = listRows(meta.key)
+  return [
+    { label: '待派工记录', value: countByStatus(all, '待派工') },
+    { label: '已派工记录', value: countByStatus(all, '已派工') },
+    { label: '本月结算工日', value: monthSettledWorkdays(all) },
+  ]
+})
 
 function resetFilters() {
   filters.value = {}
