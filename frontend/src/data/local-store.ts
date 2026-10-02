@@ -41,7 +41,13 @@ export function listRows(key: string): EntryRow[] {
 }
 
 export function saveRows(key: string, rows: EntryRow[]): void {
-  const next = { ...allRows(), [key]: rows }
+  saveAll({ [key]: rows })
+}
+
+// 跨模块一次落库：用工派工完工时要同时写派工结算与探方验收清单，
+// 合到同一次 localStorage 写入，避免只写一半两边对不上。
+export function saveAll(patch: Record<string, EntryRow[]>): void {
+  const next = { ...allRows(), ...patch }
   cache = next
   if (typeof window !== 'undefined' && window.localStorage) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
